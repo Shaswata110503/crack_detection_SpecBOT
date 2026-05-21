@@ -1,0 +1,8 @@
+pip install customtkinter
+pip install opencv-python
+pip install tensorflow
+pip install ultralytics
+pip install pyserial
+pip install requests
+pip install numpy
+pip install pillow
