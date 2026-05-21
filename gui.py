@@ -2,7 +2,9 @@
 # PIPELINE ROBOT GUI LAYOUT
 # CustomTkinter
 # =========================
-
+import threading
+import threading
+from esp32_handler import connect_esp32, receive_message
 import customtkinter as ctk
 from camera_handler import start_camera, stop_camera
 from aurdino_handler import (
@@ -46,12 +48,55 @@ left_frame.configure(width=200)
 alert_box = ctk.CTkFrame(left_frame, corner_radius=12)
 alert_box.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
+# alert_label = ctk.CTkLabel(
+#     alert_box,
+#     text="ALERT",
+#     font=("Arial", 20, "bold")
+# )
+# alert_label.pack(pady=10)
+
 alert_label = ctk.CTkLabel(
     alert_box,
-    text="ALERT",
-    font=("Arial", 20, "bold")
+    text="SAFE",
+    font=("Arial", 28, "bold"),
+    text_color="green"
 )
-alert_label.pack(pady=10)
+
+alert_label.pack(pady=30)
+
+def monitor_esp32():
+
+    connected = connect_esp32()
+
+    if not connected:
+
+        alert_label.configure(
+            text="ESP32 OFFLINE",
+            text_color="orange"
+        )
+
+        return
+
+    while True:
+
+        message = receive_message()
+
+        if message == "CRACK_ALERT":
+
+            alert_label.configure(
+                text="⚠ CRACK DETECTED",
+                text_color="red"
+            )
+
+        elif message == "SAFE":
+
+            alert_label.configure(
+                text="SAFE",
+                text_color="green"
+            )
+
+
+
 # ================
 # STATUS BOX
 # ================
@@ -417,5 +462,12 @@ imu_data3.pack(pady=2)
 # =====================================================
 # RUN FROM MAIN LOOP
 # =====================================================
+esp32_thread = threading.Thread(
+    target=monitor_esp32,
+    daemon=True
+)
+
+esp32_thread.start()
+
 
 app.mainloop()
