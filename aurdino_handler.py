@@ -1,6 +1,5 @@
 import serial
 import time
-
 # ===================
 # CONFIGURATION OF COMMUNICATION PORT AND BAUD RATE 
 # ===================
@@ -20,13 +19,15 @@ try:
 
     connected = True
 
-except:
+# except:
 
-    print(" Bluetooth not connected")
+#     print(" Bluetooth not connected")
 
-    ser = None
-    connected = False
-
+#     ser = None
+#     connected = False
+except Exception as e:
+    print("Bluetooth not connected")
+    print(e)
 
 # ===================
 # SEND COMMAND
