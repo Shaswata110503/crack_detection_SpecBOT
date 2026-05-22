@@ -1,6 +1,12 @@
 import cv2
 from PIL import Image, ImageTk
 
+# =========================================
+# ESP32-CAM STREAM URL
+# =========================================
+
+ESP32_CAM_URL = "http://10.50.141.5:81/stream"
+
 cap = None
 camera_running = False
 
@@ -8,6 +14,7 @@ camera_running = False
 # =========================================
 # START CAMERA
 # =========================================
+
 def start_camera(camera_label):
 
     global cap, camera_running
@@ -15,7 +22,16 @@ def start_camera(camera_label):
     if camera_running:
         return
 
-    cap = cv2.VideoCapture(0)
+    # Connect to ESP32-CAM stream
+    cap = cv2.VideoCapture(ESP32_CAM_URL)
+
+    if not cap.isOpened():
+
+        print("Cannot connect to ESP32-CAM")
+
+        return
+
+    print("ESP32-CAM Connected")
 
     camera_running = True
 
@@ -25,6 +41,7 @@ def start_camera(camera_label):
 # =========================================
 # UPDATE FRAME
 # =========================================
+
 def update_frame(camera_label):
 
     global cap, camera_running
@@ -37,13 +54,25 @@ def update_frame(camera_label):
     if ret:
 
         # Convert BGR → RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.cvtColor(
+            frame,
+            cv2.COLOR_BGR2RGB
+        )
 
-        # Resize frame
+        # Get label size
         width = camera_label.winfo_width()
         height = camera_label.winfo_height()
 
-        frame = cv2.resize(frame, (width, height))
+        # Prevent zero-size crash
+        if width < 10 or height < 10:
+            width = 640
+            height = 480
+
+        # Resize frame
+        frame = cv2.resize(
+            frame,
+            (width, height)
+        )
 
         # Convert to PIL image
         img = Image.fromarray(frame)
@@ -51,7 +80,7 @@ def update_frame(camera_label):
         # Convert to Tkinter image
         imgtk = ImageTk.PhotoImage(image=img)
 
-        # Update label
+        # Update GUI label
         camera_label.configure(
             image=imgtk,
             text=""
@@ -60,7 +89,7 @@ def update_frame(camera_label):
         # Keep reference
         camera_label.image = imgtk
 
-    # Repeat
+    # Repeat continuously
     camera_label.after(
         10,
         lambda: update_frame(camera_label)
@@ -70,6 +99,7 @@ def update_frame(camera_label):
 # =========================================
 # STOP CAMERA
 # =========================================
+
 def stop_camera(camera_label):
 
     global cap, camera_running
@@ -77,10 +107,12 @@ def stop_camera(camera_label):
     camera_running = False
 
     if cap is not None:
+
         cap.release()
+
         cap = None
 
-    # Clear image safely
+    # Clear GUI image
     camera_label.configure(
         image="",
         text="LIVE CAMERA",
@@ -90,3 +122,5 @@ def stop_camera(camera_label):
     camera_label.image = None
 
     cv2.destroyAllWindows()
+
+    print("ESP32-CAM Stopped")
