@@ -3,7 +3,7 @@
 # CustomTkinter
 # =========================
 import threading
-import threading
+import winsound
 from esp32_handler import connect_esp32, receive_message
 import customtkinter as ctk
 from camera_handler import start_camera, stop_camera
@@ -48,13 +48,6 @@ left_frame.configure(width=200)
 alert_box = ctk.CTkFrame(left_frame, corner_radius=12)
 alert_box.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-# alert_label = ctk.CTkLabel(
-#     alert_box,
-#     text="ALERT",
-#     font=("Arial", 20, "bold")
-# )
-# alert_label.pack(pady=10)
-
 alert_label = ctk.CTkLabel(
     alert_box,
     text="SAFE",
@@ -63,6 +56,26 @@ alert_label = ctk.CTkLabel(
 )
 
 alert_label.pack(pady=30)
+
+# ==========================
+# BLINKING ALERT
+# ==========================
+is_blinking = False
+
+def blink_alert():
+
+    global is_blinking
+
+    if is_blinking:
+
+        current_color = alert_label.cget("text_color")
+
+        if current_color == "red":
+            alert_label.configure(text_color="white")
+        else:
+            alert_label.configure(text_color="red")
+
+        alert_label.after(500, blink_alert)
 
 def monitor_esp32():
 
@@ -82,13 +95,17 @@ def monitor_esp32():
         message = receive_message()
 
         if message == "CRACK_ALERT":
+            winsound.Beep(1500, 1000)  # Beep sound for alert
 
             alert_label.configure(
                 text="⚠ CRACK DETECTED",
-                text_color="red"
             )
+            if not is_blinking:
+                is_blinking = True
+                blink_alert()
 
         elif message == "SAFE":
+            is_blinking = False
 
             alert_label.configure(
                 text="SAFE",
