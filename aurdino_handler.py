@@ -4,7 +4,7 @@ import time
 # CONFIGURATION OF COMMUNICATION PORT AND BAUD RATE 
 # ===================
 
-PORT = "COM6"
+PORT = "COM9"
 BAUD = 9600
 
 # ===================
@@ -67,12 +67,12 @@ def robot_stop():
 
 def light_on():
 
-    send_command("light on")
+    send_command("A")
 
 
 def light_off():
 
-    send_command("light off")
+    send_command("B")
 # ===================
 # SPEED CONTROL
 # ===================
