@@ -52,17 +52,17 @@ def send_command(command):
 
 def robot_forward():
 
-    send_command("robot on")
+    send_command("F")
 
 
 def robot_backward():
 
-    send_command("robot back")
+    send_command("B")
 
 
 def robot_stop():
 
-    send_command("robot off")
+    send_command("S")
 
 
 def light_on():
