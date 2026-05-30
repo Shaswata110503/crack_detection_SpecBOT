@@ -192,6 +192,46 @@ speed_value_label = ctk.CTkLabel(
 speed_value_label.pack(pady=(15, 5))
 
 
+# def update_speed(value):
+
+#     speed = int(float(value))
+
+#     speed_value_label.configure(
+#         text=f"Speed : {speed}"
+#     )
+
+#     set_speed(speed)
+
+
+# speed_slider = ctk.CTkSlider(
+#     status_box,
+#     from_=0,
+#     to=10,
+#     number_of_steps=10,
+#     command=update_speed
+# )
+
+# speed_slider.set(3)
+
+# speed_slider.pack(
+#     padx=15,
+#     pady=10,
+#     fill="x"
+# )
+
+# ===================================
+# SPEED CONTROL
+# ===================================
+
+speed_value_label = ctk.CTkLabel(
+    status_box,
+    text="Speed : 2",
+    font=("Arial", 16, "bold")
+)
+
+speed_value_label.pack(pady=(15, 5))
+
+
 def update_speed(value):
 
     speed = int(float(value))
@@ -203,15 +243,20 @@ def update_speed(value):
     set_speed(speed)
 
 
+def set_speed(speed):
+
+    send_command(str(speed))
+
+
 speed_slider = ctk.CTkSlider(
     status_box,
     from_=0,
-    to=10,
-    number_of_steps=10,
+    to=4,
+    number_of_steps=4,
     command=update_speed
 )
 
-speed_slider.set(3)
+speed_slider.set(2)
 
 speed_slider.pack(
     padx=15,
@@ -219,13 +264,18 @@ speed_slider.pack(
     fill="x"
 )
 
+
+
+
+
+
 # THIRD BOX
 third_box = ctk.CTkFrame(left_frame, corner_radius=12)
 third_box.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
 
 third_label = ctk.CTkLabel(
     third_box,
-    text="FUTURE BOX",
+    text="AQI Index",
     font=("Arial", 20, "bold")
 )
 third_label.pack(pady=10)

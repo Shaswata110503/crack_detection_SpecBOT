@@ -72,7 +72,7 @@ def light_on():
 
 def light_off():
 
-    send_command("B")
+    send_command("C")
 # ===================
 # SPEED CONTROL
 # ===================
