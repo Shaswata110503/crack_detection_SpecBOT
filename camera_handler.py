@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 # ESP32-CAM STREAM URL
 # =========================================
 
-ESP32_CAM_URL = "http://10.50.141.5:81/stream"
+ESP32_CAM_URL = "http://192.168.137.169:81/stream"
 
 cap = None
 camera_running = False

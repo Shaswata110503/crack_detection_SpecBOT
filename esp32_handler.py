@@ -2,7 +2,7 @@ import socket
 
 # HOST = "192.168.1.5"   # CHANGE THIS to  ESP32 IP shown in Serial Monitor.
 # PORT = 1234
-HOST = "10.50.141.46"
+HOST = "10.204.152.46"
 PORT = 1234
 
 client_socket = None

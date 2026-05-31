@@ -2,6 +2,9 @@
 # PIPELINE ROBOT GUI LAYOUT
 # CustomTkinter
 # =========================
+from CNN_predict import predict_image
+from PIL import Image
+import requests
 import threading
 import winsound
 from esp32_handler import connect_esp32, receive_message
@@ -79,6 +82,8 @@ def blink_alert():
 
 def monitor_esp32():
 
+    global is_blinking
+
     connected = connect_esp32()
 
     if not connected:
@@ -94,17 +99,34 @@ def monitor_esp32():
 
         message = receive_message()
 
+        if not message:
+            continue
+
+        print("Received:", message)
+
+        # ==================================
+        # CRACK ALERT
+        # ==================================
+
         if message == "CRACK_ALERT":
-            winsound.Beep(1500, 1000)  # Beep sound for alert
+
+            winsound.Beep(1500, 1000)
 
             alert_label.configure(
-                text="⚠ CRACK DETECTED",
+                text="⚠ CRACK DETECTED"
             )
+
             if not is_blinking:
+
                 is_blinking = True
                 blink_alert()
 
+        # ==================================
+        # SAFE
+        # ==================================
+
         elif message == "SAFE":
+
             is_blinking = False
 
             alert_label.configure(
@@ -112,7 +134,149 @@ def monitor_esp32():
                 text_color="green"
             )
 
+        # ==================================
+        # SENSOR DATA
+        # ==================================
 
+        # ==================================
+        # SENSOR DATA
+        # ==================================
+
+        elif "Gas" in message:
+
+            try:
+
+                # Example:
+                # Gas:4095,Temp:35.20,Humidity:75.00
+
+                parts = message.split(",")
+
+                gas = parts[0].split(":")[1]
+                temp = parts[1].split(":")[1]
+                hum = parts[2].split(":")[1]
+
+                gas_value = int(gas)
+
+                # ==================================
+                # AQI CALCULATION
+                # ==================================
+
+                if gas_value <= 100:
+
+                    aqi = gas_value
+                    status = "Good"
+                    color = "green"
+
+                elif gas_value <= 500:
+
+                    aqi = gas_value
+                    status = "Moderate"
+                    color = "yellow"
+
+                elif gas_value <= 1500:
+
+                    aqi = gas_value
+                    status = "Poor"
+                    color = "orange"
+
+                elif gas_value <= 3000:
+
+                    aqi = gas_value
+                    status = "Very Poor"
+                    color = "red"
+
+                else:
+
+                    aqi = gas_value
+                    status = "Severe"
+                    color = "darkred"
+
+                # ==================================
+                # UPDATE GUI
+                # ==================================
+
+                temp_label.configure(
+                    text=f"Temperature: {temp} °C"
+                )
+
+                hum_label.configure(
+                    text=f"Humidity: {hum} %"
+                )
+
+                gas_label.configure(
+                    text=f"Gas Level: {gas}"
+                )
+
+                aqi_label.configure(
+                    text=f"AQI : {aqi}"
+                )
+
+                aqi_status_label.configure(
+                    text=f"Status : {status}",
+                    text_color=color
+                )
+
+            except Exception as e:
+
+                print("Sensor Parsing Error:", e)
+
+# Prediction FUnction
+
+def show_prediction(img_path):
+
+    predicted_class, confidence = predict_image(img_path)
+
+    # RESULT TEXT
+    if predicted_class == "cracked":
+        result_text = f"⚠ CRACK DETECTED\nConfidence: {confidence}%"
+    else:
+        result_text = f"✅ PIPE HEALTHY\nConfidence: {confidence}%"
+
+    result_label.configure(text=result_text)
+
+    # LOAD IMAGE
+    img = Image.open(img_path)
+
+    # RESIZE IMAGE
+    img = img.resize((256,256))
+
+    # CTK IMAGE
+    ctk_img = ctk.CTkImage(
+        light_image=img,
+        dark_image=img,
+        size=(256,256)
+    )
+
+    # SHOW IMAGE
+    image_label.configure(image=ctk_img)
+    image_label.image = ctk_img
+
+# #################################
+def capture_and_predict():
+
+    # ESP32-CAM URL
+    url = "http://192.168.137.169/capture"
+
+    # Save path
+    img_path = "esp32_capture.jpg"
+
+    try:
+
+        # Get image from ESP32
+        response = requests.get(url, timeout=10)
+
+        # Save image
+        with open(img_path, "wb") as f:
+            f.write(response.content)
+
+        # Show prediction
+        show_prediction(img_path)
+
+    except Exception as e:
+
+        result_label.configure(
+            text=f"ERROR\n{e}"
+        )
 
 # ================
 # STATUS BOX
@@ -219,66 +383,105 @@ speed_value_label.pack(pady=(15, 5))
 #     fill="x"
 # )
 
-# ===================================
-# SPEED CONTROL
-# ===================================
+# # ===================================
+# # SPEED CONTROL
+# # ===================================
 
-speed_value_label = ctk.CTkLabel(
-    status_box,
-    text="Speed : 2",
-    font=("Arial", 16, "bold")
-)
+# speed_value_label = ctk.CTkLabel(
+#     status_box,
+#     text="Speed : 2",
+#     font=("Arial", 16, "bold")
+# )
 
-speed_value_label.pack(pady=(15, 5))
-
-
-def update_speed(value):
-
-    speed = int(float(value))
-
-    speed_value_label.configure(
-        text=f"Speed : {speed}"
-    )
-
-    set_speed(speed)
+# speed_value_label.pack(pady=(15, 5))
 
 
-def set_speed(speed):
+# def update_speed(value):
 
-    send_command(str(speed))
+#     speed = int(float(value))
 
+#     speed_value_label.configure(
+#         text=f"Speed : {speed}"
+#     )
 
-speed_slider = ctk.CTkSlider(
-    status_box,
-    from_=0,
-    to=4,
-    number_of_steps=4,
-    command=update_speed
-)
-
-speed_slider.set(2)
-
-speed_slider.pack(
-    padx=15,
-    pady=10,
-    fill="x"
-)
+#     set_speed(speed)
 
 
+# def set_speed(speed):
+
+#     send_command(str(speed))
 
 
+# speed_slider = ctk.CTkSlider(
+#     status_box,
+#     from_=0,
+#     to=4,
+#     number_of_steps=4,
+#     command=update_speed
+# )
+
+# speed_slider.set(2)
+
+# speed_slider.pack(
+#     padx=15,
+#     pady=10,
+#     fill="x"
+# )
 
 
 # THIRD BOX
 third_box = ctk.CTkFrame(left_frame, corner_radius=12)
 third_box.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
 
-third_label = ctk.CTkLabel(
+title_label = ctk.CTkLabel(
     third_box,
     text="AQI Index",
     font=("Arial", 20, "bold")
 )
-third_label.pack(pady=10)
+title_label.pack(pady=10)
+
+# SENSOR LABELS
+temp_label = ctk.CTkLabel(
+    third_box,
+    text="Temperature: -- °C",
+    font=("Arial", 16)
+)
+temp_label.pack(pady=5)
+
+hum_label = ctk.CTkLabel(
+    third_box,
+    text="Humidity: -- %",
+    font=("Arial", 16)
+)
+hum_label.pack(pady=5)
+
+gas_label = ctk.CTkLabel(
+    third_box,
+    text="Gas Level: --",
+    font=("Arial", 16)
+)
+gas_label.pack(pady=5)
+# #############
+
+
+aqi_label = ctk.CTkLabel(
+    third_box,
+    text="AQI : --",
+    font=("Arial", 18, "bold")
+)
+
+aqi_label.pack(pady=8)
+
+aqi_status_label = ctk.CTkLabel(
+    third_box,
+    text="Status : --",
+    font=("Arial", 16, "bold")
+)
+
+aqi_status_label.pack(pady=5)
+
+
+
 
 # =====================================================
 # MIDDLE SECTION
@@ -329,6 +532,7 @@ camera_label.pack(
     pady=10
 )
 
+
 # =====================================================
 # AI RESULT SECTION
 # =====================================================
@@ -346,19 +550,26 @@ result_frame.grid(
     sticky="nsew"
 )
 
-# VERY IMPORTANT
 result_frame.grid_propagate(False)
 
+# RESULT TEXT
 result_label = ctk.CTkLabel(
     result_frame,
     text="AI PREDICTED RESULT",
     font=("Arial", 28, "bold")
 )
 
-result_label.pack(
-    fill="both",
-    expand=True
+result_label.pack(pady=(10,5))
+
+# IMAGE LABEL
+image_label = ctk.CTkLabel(
+    result_frame,
+    text=""
 )
+
+image_label.pack(pady=10)
+
+
 # =====================================================
 # RIGHT SECTION
 # =====================================================
@@ -420,7 +631,8 @@ btn3 = ctk.CTkButton(
     button_box,
     text="Capture Image",
     fg_color="#DF2494",
-    hover_color="#00C9FF"
+    hover_color="#00C9FF",
+    command=capture_and_predict
 )
 btn3.grid(row=3, column=0, padx=20, pady=8, sticky="ew")
 
