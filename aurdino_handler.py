@@ -82,6 +82,32 @@ def set_speed(speed):
     send_command(f"speed:{speed}")
 
 # ===================
+# READ ENCODER DATA
+# ===================
+
+def read_encoder():
+
+    global ser
+
+    try:
+
+        if ser.in_waiting:
+
+            line = ser.readline().decode().strip()
+
+            if "," in line:
+
+                count, distance = line.split(",")
+
+                return count, distance
+
+    except Exception as e:
+
+        print("Encoder Read Error:", e)
+
+    return None, None
+
+# ===================
 # CLEANUP
 # ===================
 

@@ -3,6 +3,9 @@
 # CustomTkinter
 # =========================
 from CNN_predict import predict_image
+import csv
+import os
+from datetime import datetime
 from PIL import Image
 import requests
 import threading
@@ -16,8 +19,38 @@ from aurdino_handler import (
     robot_stop,
     light_on,
     light_off,
-    set_speed
+    set_speed,
+    read_encoder
 )
+# ################################################
+# =========================
+# CREATE FOLDERS
+# =========================
+
+os.makedirs("captured_images", exist_ok=True)
+
+csv_file = "sensor_data.csv"
+# =========================
+# CREATE CSV FILE
+# =========================
+
+if not os.path.exists(csv_file):
+
+    with open(csv_file, "w", newline="") as file:
+
+        writer = csv.writer(file)
+
+        writer.writerow([
+            "Timestamp",
+            "Temperature",
+            "Humidity",
+            "GasLevel",
+            "Prediction",
+            "Confidence",
+            "ImagePath"
+        ])
+# ########################################################
+
 # -------------------------
 # Window Setup
 # -------------------------
@@ -215,6 +248,17 @@ def monitor_esp32():
                     text=f"Status : {status}",
                     text_color=color
                 )
+                with open(csv_file, "a", newline="") as file:
+                    writer=csv.writer(file)
+                    writer.writerow([
+                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        temp,
+                        hum,
+                        gas,
+                        latest_prediction,
+                        latest_confidence,
+                        latest_image_path
+                    ])
 
             except Exception as e:
 
@@ -222,10 +266,23 @@ def monitor_esp32():
 
 # Prediction FUnction
 
+# #######################
+latest_prediction = "Unknown"
+latest_confidence = 0
+latest_image_path = ""
+# #######################
+
+
+
 def show_prediction(img_path):
+    global latest_prediction, latest_confidence, latest_image_path
 
     predicted_class, confidence = predict_image(img_path)
-
+    # ###################
+    latest_prediction=predicted_class
+    latest_confidence=confidence
+    latest_image_path=img_path
+    # ###################
     # RESULT TEXT
     if predicted_class == "cracked":
         result_text = f"⚠ CRACK DETECTED\nConfidence: {confidence}%"
@@ -255,10 +312,12 @@ def show_prediction(img_path):
 def capture_and_predict():
 
     # ESP32-CAM URL
-    url = "http://192.168.137.169/capture"
+    url = "http://192.168.139.99/capture"
 
     # Save path
-    img_path = "esp32_capture.jpg"
+    # img_path = "esp32_capture.jpg"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    img_path = f"captured_images/{timestamp}.jpg"
 
     try:
 
@@ -277,6 +336,10 @@ def capture_and_predict():
         result_label.configure(
             text=f"ERROR\n{e}"
         )
+# =========================
+# UPDATE ENCODER UI
+# =========================
+
 
 # ================
 # STATUS BOX
@@ -343,91 +406,6 @@ stop_btn = ctk.CTkButton(
 )
 
 stop_btn.pack(padx=10, pady=8, fill="x")
-# ===================================
-# SPEED CONTROL
-# ===================================
-
-speed_value_label = ctk.CTkLabel(
-    status_box,
-    text="Speed : 5",
-    font=("Arial", 16, "bold")
-)
-
-speed_value_label.pack(pady=(15, 5))
-
-
-# def update_speed(value):
-
-#     speed = int(float(value))
-
-#     speed_value_label.configure(
-#         text=f"Speed : {speed}"
-#     )
-
-#     set_speed(speed)
-
-
-# speed_slider = ctk.CTkSlider(
-#     status_box,
-#     from_=0,
-#     to=10,
-#     number_of_steps=10,
-#     command=update_speed
-# )
-
-# speed_slider.set(3)
-
-# speed_slider.pack(
-#     padx=15,
-#     pady=10,
-#     fill="x"
-# )
-
-# # ===================================
-# # SPEED CONTROL
-# # ===================================
-
-# speed_value_label = ctk.CTkLabel(
-#     status_box,
-#     text="Speed : 2",
-#     font=("Arial", 16, "bold")
-# )
-
-# speed_value_label.pack(pady=(15, 5))
-
-
-# def update_speed(value):
-
-#     speed = int(float(value))
-
-#     speed_value_label.configure(
-#         text=f"Speed : {speed}"
-#     )
-
-#     set_speed(speed)
-
-
-# def set_speed(speed):
-
-#     send_command(str(speed))
-
-
-# speed_slider = ctk.CTkSlider(
-#     status_box,
-#     from_=0,
-#     to=4,
-#     number_of_steps=4,
-#     command=update_speed
-# )
-
-# speed_slider.set(2)
-
-# speed_slider.pack(
-#     padx=15,
-#     pady=10,
-#     fill="x"
-# )
-
 
 # THIRD BOX
 third_box = ctk.CTkFrame(left_frame, corner_radius=12)
@@ -679,29 +657,88 @@ btn7.grid(row=7, column=0, padx=20, pady=8, sticky="ew")
 # BOX 2 -> ENCODER
 # -------------------------
 
-encoder_box = ctk.CTkFrame(right_frame, corner_radius=12)
-encoder_box.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+# ==========================
+# LIVE ENCODER UPDATE
+# ==========================
+
+def update_encoder_data():
+
+    count, distance = read_encoder()
+
+    if count is not None:
+
+        count_label.configure(
+            text=f"Live Count : {count}"
+        )
+
+        distance_label.configure(
+            text=f"Distance : {distance} cm"
+        )
+
+    app.after(100, update_encoder_data)
+
+# ==========================
+# ENCODER BOX
+# ==========================
+
+encoder_box = ctk.CTkFrame(
+    right_frame,
+    corner_radius=12
+)
+
+encoder_box.grid(
+    row=1,
+    column=0,
+    padx=10,
+    pady=10,
+    sticky="nsew"
+)
+
+# ==========================
+# TITLE
+# ==========================
 
 encoder_title = ctk.CTkLabel(
     encoder_box,
     text="ENCODER",
     font=("Arial", 18, "bold")
 )
+
 encoder_title.pack(pady=5)
+
+# ==========================
+# COUNT LABEL
+# ==========================
 
 count_label = ctk.CTkLabel(
     encoder_box,
     text="Live Count : 0",
     font=("Arial", 16)
 )
+
 count_label.pack(pady=5)
+
+# ==========================
+# DISTANCE LABEL
+# ==========================
 
 distance_label = ctk.CTkLabel(
     encoder_box,
     text="Distance : 0 cm",
     font=("Arial", 16)
 )
+
 distance_label.pack(pady=5)
+
+# ==========================
+# START LIVE UPDATE
+# ==========================
+
+update_encoder_data()
+
+
+
+
 
 # -------------------------
 # BOX 3 -> IMU

@@ -31,7 +31,7 @@ def predict_image(img_path):
 # # TEST
 # # ==========================================
 
-# img_path = r"C:\Users\desha\Downloads\20260530154504.jpg"
+# img_path = r"C:\Users\desha\Downloads\WhatsApp Image 2026-05-30 at 13.08.52.jpeg"
 
 # result, confidence = predict_image(img_path)
 
